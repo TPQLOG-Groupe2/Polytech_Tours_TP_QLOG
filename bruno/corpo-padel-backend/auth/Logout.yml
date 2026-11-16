@@ -12,6 +12,11 @@ http:
     type: bearer
     token: "{{token}}"
 
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar('token','')
+
 settings:
   encodeUrl: true
   timeout: 0

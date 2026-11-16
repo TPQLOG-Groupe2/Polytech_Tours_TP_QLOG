@@ -2,6 +2,7 @@ opencollection: 1.0.0
 
 info:
   name: corpo-padel-backend
+  version: 1.0.0
 config:
   proxy:
     inherit: true
@@ -13,6 +14,17 @@ config:
         username: ""
         password: ""
       bypassProxy: ""
+
+docs:
+  content: |-
+    # Corpo padel backend's API helper
+
+    ## How to use authenticated endpoints
+
+    Before running an authenticated request, run `/auth/login` endpoint. It will set `token` variable automatically for all other requests.
+
+    Running Logout endpoint will empty this `token` variable.
+  type: text/markdown
 bundled: false
 extensions:
   bruno:

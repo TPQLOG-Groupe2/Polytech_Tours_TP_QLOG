@@ -12,10 +12,15 @@ http:
     type: json
     data: |-
       {
-        "email": "",
-        "password": ""
+        "email": "joueur@padel.com",
+        "password": "Joueur@2025!"
       }
   auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar('token', res.body.access_token)
 
 settings:
   encodeUrl: true
