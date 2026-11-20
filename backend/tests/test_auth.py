@@ -43,7 +43,7 @@ def test_lockout_after_failed_attempts(client, db_session):
         response = _login_attempt(client, "test@example.com", "wrong_password")
         assert response.status_code == 401
 
-    #declenching lockout
+    # declenching lockout
     response = _login_attempt(client, "test@example.com", "wrong_password")
     assert response.status_code == 423
 
