@@ -5,14 +5,14 @@ from app.config import settings
 from app.models import LoginAttempt, User
 from app.security import hash_password
 
-URL = "/auth/login"
+URL = "/api/v1/auth/login"
 
 def _login_attempt(client, email: str, password: str):
     return client.post(URL, json={"email": email, "password": password})
 
 
-def _make_user(db_session, email: str, password: str):
-    user = User(email=email, password_hash=hash_password(password))
+def _make_user(db_session, email: str, password: str, role: str = "JOUEUR"):
+    user = User(email=email, password_hash=hash_password(password), role=role)
     db_session.add(user)
     db_session.commit()
     return user
@@ -45,11 +45,11 @@ def test_lockout_after_failed_attempts(client, db_session):
 
     # declenching lockout
     response = _login_attempt(client, "test@example.com", "wrong_password")
-    assert response.status_code == 423
+    assert response.status_code == 403
 
     # testing that the user is not able to log anymore even w the right pword
     response = _login_attempt(client, "test@example.com", "password")
-    assert response.status_code == 423
+    assert response.status_code == 403
 
 
 def test_lockout_expiration(client, db_session):
@@ -59,7 +59,8 @@ def test_lockout_expiration(client, db_session):
         _login_attempt(client, "test@example.com", "wrong_password")
 
     # manually setting the lockout expiration to a future time
-    user.lockout_expiration = datetime.now(timezone.utc) - timedelta(minutes=30)
+    attempt = db_session.query(LoginAttempt).filter_by(email="test@example.com").one()
+    attempt.locked_until = datetime.now(timezone.utc) - timedelta(minutes=30)
     db_session.commit()
 
     assert _login_attempt(client, "test@example.com", "password").status_code == 200
