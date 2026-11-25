@@ -58,7 +58,7 @@ def test_lockout_expiration(client, db_session):
     for _ in range(settings.max_login_attempts+1):
         _login_attempt(client, "test@example.com", "wrong_password")
 
-    # manually setting the lockout expiration to a future time
+    # manually setting the lockout expiration to a past time
     attempt = db_session.query(LoginAttempt).filter_by(email="test@example.com").one()
     attempt.locked_until = datetime.now(timezone.utc) - timedelta(minutes=30)
     db_session.commit()
