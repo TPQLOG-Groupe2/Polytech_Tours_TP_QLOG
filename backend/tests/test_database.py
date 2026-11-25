@@ -1,4 +1,3 @@
-# tests/test_database.py
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,16 +9,16 @@ from app import database
 from app.database import Base, SessionLocal, get_db, init_db
 
 
-# Checks that Base inherits from DeclarativeBase (SQLAlchemy 2.0),
-# the base class on which all models rely.
 def test_base_is_declarative_base():
+    # checking the SQLAlchemy base class
     assert issubclass(Base, DeclarativeBase)
 
 
-# Checks that SessionLocal is a sessionmaker that produces Session instances bound to the correct engine and with autoflush disabled.
-def test_session_local_configuration():
+def test_session_local_uses_application_engine_without_autoflush():
+    # creating a database session
     session = SessionLocal()
     try:
+        # checking session type, engine binding and autoflush
         assert isinstance(session, Session)
         assert session.bind is database.engine
         assert session.autoflush is False
@@ -27,41 +26,47 @@ def test_session_local_configuration():
         session.close()
 
 
-# Checks that the SQLite foreign keys pragma is enabled, which is important for enforcing foreign key constraints.
-def test_foreign_keys_pragma_enabled(db_engine):
-    with db_engine.connect() as conn:
-        assert conn.execute(text("PRAGMA foreign_keys")).scalar() == 1
+def test_sqlite_engine_enables_foreign_keys(db_engine):
+    # querying the SQLite foreign-key pragma
+    with db_engine.connect() as connection:
+        assert connection.execute(text("PRAGMA foreign_keys")).scalar() == 1
 
 
-# Checks that get_db yields a session and closes it after the generator is exhausted.
-def test_get_db_yields_session_and_closes(monkeypatch):
-    fake_session = MagicMock(spec=Session)
-    monkeypatch.setattr(database, "SessionLocal", lambda: fake_session)
+def test_get_db_yields_session_and_closes_it(monkeypatch):
+    # replacing SessionLocal with a fake session
+    session = MagicMock(spec=Session)
+    monkeypatch.setattr(database, "SessionLocal", lambda: session)
 
-    gen = get_db()
-    assert next(gen) is fake_session
-    fake_session.close.assert_not_called()
+    # creating the dependency generator
+    generator = get_db()
 
+    # checking that the session is yielded and not closed yet
+    assert next(generator) is session
+    session.close.assert_not_called()
+    # checking cleanup after generator exhaustion
     with pytest.raises(StopIteration):
-        next(gen)
-    fake_session.close.assert_called_once()
+        next(generator)
+    session.close.assert_called_once_with()
 
 
-# Checks that get_db closes the session even if an exception is raised in the generator.
-def test_get_db_closes_session_on_exception(monkeypatch):
-    fake_session = MagicMock(spec=Session)
-    monkeypatch.setattr(database, "SessionLocal", lambda: fake_session)
+def test_get_db_closes_session_when_generator_is_abandoned(monkeypatch):
+    # replacing SessionLocal with a fake session
+    session = MagicMock(spec=Session)
+    monkeypatch.setattr(database, "SessionLocal", lambda: session)
 
-    gen = get_db()
-    next(gen)
-    with pytest.raises(RuntimeError):
-        gen.throw(RuntimeError("boom"))
-    fake_session.close.assert_called_once()
+    # starting the dependency generator
+    generator = get_db()
+    next(generator)
+
+    # simulating an exception and checking cleanup
+    with pytest.raises(RuntimeError, match="failure"):
+        generator.throw(RuntimeError("failure"))
+    session.close.assert_called_once_with()
 
 
-# making a fixture to create an empty engine for testing init_db without affecting the real database
 @pytest.fixture
 def empty_engine(monkeypatch):
+    # creating an isolated in-memory engine
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -72,18 +77,20 @@ def empty_engine(monkeypatch):
     engine.dispose()
 
 
-# Checking that init_db creates all tables defined in Base.metadata.tables.
-def test_init_db_creates_all_tables(empty_engine):
+def test_init_db_creates_registered_tables(empty_engine):
+    # checking that the empty engine has no tables
     assert inspect(empty_engine).get_table_names() == []
 
+    # initializing database tables
     init_db()
 
-    tables = set(inspect(empty_engine).get_table_names())
-    assert tables
-    assert tables == set(Base.metadata.tables.keys())
+    # checking that all registered tables were created
+    assert set(inspect(empty_engine).get_table_names()) == set(Base.metadata.tables)
 
 
-# Checking that init_db can be called multiple times without error (idempotent).
 def test_init_db_is_idempotent(empty_engine):
+    # initializing tables twice
     init_db()
     init_db()
+
+    assert set(inspect(empty_engine).get_table_names()) == set(Base.metadata.tables)

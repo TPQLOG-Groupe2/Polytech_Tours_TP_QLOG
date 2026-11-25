@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="77" time="4.796" timestamp="2026-11-25T17:06:28.730475+01:00" hostname="swyx"><testcase classname="tests.test_auth" name="test_login_success" time="0.545" /><testcase classname="tests.test_auth" name="test_wrong_password" time="0.358" /><testcase classname="tests.test_auth" name="test_lockout_after_failed_attempts" time="1.258" /><testcase classname="tests.test_auth" name="test_lockout_expiration" time="1.478" /><testcase classname="tests.test_config" name="test_settings_defaults" time="0.000" /><testcase classname="tests.test_config" name="test_settings_load_environment_overrides" time="0.001" /><testcase classname="tests.test_config" name="test_origins_list_splits_trims_and_ignores_empty_entries" time="0.001" /><testcase classname="tests.test_database" name="test_base_is_declarative_base" time="0.000" /><testcase classname="tests.test_database" name="test_session_local_uses_application_engine_without_autoflush" time="0.000" /><testcase classname="tests.test_database" name="test_sqlite_engine_enables_foreign_keys" time="0.004" /><testcase classname="tests.test_database" name="test_get_db_yields_session_and_closes_it" time="0.001" /><testcase classname="tests.test_database" name="test_get_db_closes_session_when_generator_is_abandoned" time="0.001" /><testcase classname="tests.test_database" name="test_init_db_creates_registered_tables" time="0.003" /><testcase classname="tests.test_database" name="test_init_db_is_idempotent" time="0.003" /><testcase classname="tests.test_event_match_spec" name="test_create_event_rejects_past_date" time="0.011"><failure message="Failed: DID NOT RAISE &lt;class 'fastapi.exceptions.HTTPException'&gt;">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000019DD3221220&gt;
+
+    def test_create_event_rejects_past_date(db_session):
+        # creating teams
+        p1 = Player(first_name="A", last_name="Test", company="A", license_number="L600001", email="a600@example.com")
+        p2 = Player(first_name="B", last_name="Test", company="A", license_number="L600002", email="b600@example.com")
+        p3 = Player(first_name="C", last_name="Test", company="B", license_number="L600003", email="c600@example.com")
+        p4 = Player(first_name="D", last_name="Test", company="B", license_number="L600004", email="d600@example.com")
+        t1 = Team(company="A", player1=p1, player2=p2)
+        t2 = Team(company="B", player1=p3, player2=p4)
+        db_session.add_all([t1, t2])
+        db_session.commit()
+        payload = EventCreate(
+            event_date="2020-01-01",
+            event_time="10:00",
+            matches=[
+                MatchInEvent(court_number=1, team1_id=t1.id, team2_id=t2.id)
+            ],
+        )
+    
+        # R1 requires rejecting past dates
+&gt;       with pytest.raises(HTTPException) as exc_info:
+E       Failed: DID NOT RAISE &lt;class 'fastapi.exceptions.HTTPException'&gt;
+
+tests\test_event_match_spec.py:31: Failed</failure></testcase><testcase classname="tests.test_event_match_spec" name="test_create_match_rejects_court_conflict" time="0.010"><failure message="Failed: DID NOT RAISE &lt;class 'fastapi.exceptions.HTTPException'&gt;">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000019DD31FBE30&gt;
+
+    def test_create_match_rejects_court_conflict(db_session):
+        # creating an occupied court
+        event = Event(event_date=date(2026, 12, 1), event_time="10:00")
+        p1 = Player(first_name="A", last_name="Test", company="A", license_number="L700001", email="a700@example.com")
+        p2 = Player(first_name="B", last_name="Test", company="A", license_number="L700002", email="b700@example.com")
+        p3 = Player(first_name="C", last_name="Test", company="B", license_number="L700003", email="c700@example.com")
+        p4 = Player(first_name="D", last_name="Test", company="B", license_number="L700004", email="d700@example.com")
+        t1 = Team(company="A", player1=p1, player2=p2)
+        t2 = Team(company="B", player1=p3, player2=p4)
+        db_session.add_all([event, t1, t2])
+        db_session.flush()
+        db_session.add(
+            Match(
+                event_id=event.id,
+                team1_id=t1.id,
+                team2_id=t2.id,
+                court_number=1,
+                status="A_VENIR",
+            )
+        )
+        db_session.commit()
+        payload = MatchCreate(
+            event_date="2026-12-01",
+            event_time="10:00",
+            court_number=1,
+            team1_id=t1.id,
+            team2_id=t2.id,
+        )
+    
+        # R2 requires a 409 conflict
+&gt;       with pytest.raises(HTTPException) as exc_info:
+E       Failed: DID NOT RAISE &lt;class 'fastapi.exceptions.HTTPException'&gt;
+
+tests\test_event_match_spec.py:67: Failed</failure></testcase><testcase classname="tests.test_match_rules" name="test_validate_score_accepts_simple_valid_shape" time="0.000" /><testcase classname="tests.test_match_rules" name="test_validate_score_rejects_invalid_or_incomplete_scores[]" time="0.001" /><testcase classname="tests.test_match_rules" name="test_validate_score_rejects_invalid_or_incomplete_scores[six-four]" time="0.001" /><testcase classname="tests.test_match_rules" name="test_validate_score_rejects_invalid_or_incomplete_scores[5-5]" time="0.000" /><testcase classname="tests.test_match_rules" name="test_event_validation_rejects_duplicate_court" time="0.008" /><testcase classname="tests.test_match_rules" name="test_event_validation_rejects_team_playing_twice" time="0.012" /><testcase classname="tests.test_match_rules" name="test_court_conflict_detects_existing_match" time="0.007" /><testcase classname="tests.test_match_rules" name="test_create_match_does_not_reject_past_dates" time="0.005" /><testcase classname="tests.test_match_rules" name="test_delete_match_does_not_check_status" time="0.007" /><testcase classname="tests.test_models" name="test_user_accepts_supported_roles[JOUEUR]" time="0.004" /><testcase classname="tests.test_models" name="test_user_accepts_supported_roles[ADMINISTRATEUR]" time="0.004" /><testcase classname="tests.test_models" name="test_user_rejects_unsupported_role" time="0.003" /><testcase classname="tests.test_models" name="test_player_is_linked_to_user_with_expected_defaults" time="0.005" /><testcase classname="tests.test_models" name="test_team_rejects_the_same_player_in_both_slots" time="0.004" /><testcase classname="tests.test_models" name="test_match_rejects_invalid_field_value[court_number-0]" time="0.007" /><testcase classname="tests.test_models" name="test_match_rejects_invalid_field_value[court_number-11]" time="0.007" /><testcase classname="tests.test_models" name="test_match_rejects_invalid_field_value[status-IN_PROGRESS]" time="0.009" /><testcase classname="tests.test_models" name="test_match_rejects_the_same_team_in_both_slots" time="0.010" /><testcase classname="tests.test_models" name="test_pool_exposes_assigned_teams" time="0.006" /><testcase classname="tests.test_rankings" name="test_parse_sets_returns_tuples" time="0.000" /><testcase classname="tests.test_rankings" name="test_parse_sets_returns_empty_list_for_missing_score" time="0.000" /><testcase classname="tests.test_rankings" name="test_compute_rankings_gives_three_points_for_a_win" time="0.006"><failure message="assert 2 == 3">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000019DD323F980&gt;
+
+    def test_compute_rankings_gives_three_points_for_a_win(db_session):
+        # creating two players and two teams
+        player1 = Player(first_name="A", last_name="One", company="A", license_number="L000001", email="a@example.com")
+        player2 = Player(first_name="B", last_name="Two", company="B", license_number="L000002", email="b@example.com")
+        player3 = Player(first_name="C", last_name="Three", company="A", license_number="L000003", email="c@example.com")
+        player4 = Player(first_name="D", last_name="Four", company="B", license_number="L000004", email="d@example.com")
+        team1 = Team(company="Company A", player1=player1, player2=player3)
+        team2 = Team(company="Company B", player1=player2, player2=player4)
+        event = Event(event_date=date(2026, 11, 23), event_time="10:00")
+        db_session.add_all([team1, team2, event])
+        db_session.flush()
+    
+        # creating a finished match won by team 1
+        match = Match(
+            event_id=event.id,
+            team1_id=team1.id,
+            team2_id=team2.id,
+            court_number=1,
+            status="TERMINE",
+            score_team1="6-4, 6-3",
+            score_team2="4-6, 3-6",
+        )
+        db_session.add(match)
+        db_session.commit()
+    
+        # checking that the ranking applies the specification's 3-point win
+        ranking = compute_rankings(db_session)
+    
+        assert ranking[0]["company"] == "Company A"
+        assert ranking[0]["wins"] == 1
+&gt;       assert ranking[0]["points"] == 3
+E       assert 2 == 3
+
+tests\test_rankings.py:63: AssertionError</failure></testcase><testcase classname="tests.test_rankings" name="test_player_team_ids_finds_player_memberships" time="0.005" /><testcase classname="tests.test_rankings" name="test_compute_my_results_reports_win_and_statistics" time="0.008" /><testcase classname="tests.test_schemas" name="test_login_request_accepts_required_fields" time="0.000" /><testcase classname="tests.test_schemas" name="test_change_password_request_accepts_matching_fields" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_create_normalizes_text_fields" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_create_rejects_invalid_field[first_name-A]" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_create_rejects_invalid_field[last_name-Dupont2]" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_create_rejects_invalid_field[company-X]" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_create_rejects_invalid_field[license_number-123456]" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_create_rejects_invalid_field[email-not-an-email]" time="0.000" /><testcase classname="tests.test_schemas" name="test_player_update_normalizes_text_fields" time="0.000" /><testcase classname="tests.test_schemas" name="test_team_create_normalizes_company_and_defaults_pool" time="0.000" /><testcase classname="tests.test_schemas" name="test_team_create_rejects_short_company" time="0.000" /><testcase classname="tests.test_schemas" name="test_pool_create_normalizes_name" time="0.000" /><testcase classname="tests.test_schemas" name="test_pool_update_keeps_optional_name_default" time="0.000" /><testcase classname="tests.test_schemas" name="test_pool_create_rejects_empty_name" time="0.000" /><testcase classname="tests.test_schemas" name="test_event_create_accepts_valid_nested_match" time="0.000" /><testcase classname="tests.test_schemas" name="test_event_create_rejects_invalid_time[24:00]" time="0.001" /><testcase classname="tests.test_schemas" name="test_event_create_rejects_invalid_time[9:30]" time="0.000" /><testcase classname="tests.test_schemas" name="test_event_create_rejects_invalid_time[09-30]" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_create_accepts_court_boundaries[1]" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_create_accepts_court_boundaries[10]" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_create_rejects_court_outside_boundaries[0]" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_create_rejects_court_outside_boundaries[11]" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_update_accepts_optional_valid_fields" time="0.001" /><testcase classname="tests.test_schemas" name="test_match_update_has_empty_optional_fields" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_update_rejects_invalid_optional_field[update0]" time="0.001" /><testcase classname="tests.test_schemas" name="test_match_update_rejects_invalid_optional_field[update1]" time="0.000" /><testcase classname="tests.test_schemas" name="test_match_update_rejects_invalid_optional_field[update2]" time="0.001" /><testcase classname="tests.test_schemas" name="test_profile_update_normalizes_valid_fields" time="0.000" /><testcase classname="tests.test_schemas" name="test_profile_update_rejects_unacceptable_birth_date[birth_date0]" time="0.001" /><testcase classname="tests.test_schemas" name="test_profile_update_rejects_unacceptable_birth_date[birth_date1]" time="0.001" /><testcase classname="tests.test_schemas" name="test_account_create_uses_role_default_and_accepts_admin" time="0.000" /><testcase classname="tests.test_schemas" name="test_account_create_rejects_unknown_role" time="0.000" /><testcase classname="tests.test_security_spec" name="test_expired_access_token_must_be_rejected" time="0.180"><failure message="Failed: DID NOT RAISE &lt;class 'Exception'&gt;">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000019DD318BD40&gt;
+
+    def test_expired_access_token_must_be_rejected(db_session):
+        # creating a user and an expired token
+        user = User(
+            email="expired@example.com",
+            password_hash=hash_password("Password1!"),
+            role="JOUEUR",
+        )
+        db_session.add(user)
+        db_session.commit()
+        payload = {
+            "sub": str(user.id),
+            "email": user.email,
+            "role": user.role,
+            "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+        }
+        token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+    
+        # the specification requires expiration verification
+&gt;       with pytest.raises(Exception):
+E       Failed: DID NOT RAISE &lt;class 'Exception'&gt;
+
+tests\test_security_spec.py:33: Failed</failure></testcase><testcase classname="tests.test_security_spec" name="test_login_errors_must_not_distinguish_unknown_and_wrong_password" time="0.383"><failure message="AssertionError: assert {'attempts_re...teur inconnu'} == {'attempts_re...se incorrect'}&#10;  &#10;  Omitting 1 identical items, use -vv to show&#10;  Differing items:&#10;  {'detail': 'Utilisateur inconnu'} != {'detail': 'Mot de passe incorrect'}&#10;  Use -v to get more diff">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000019DD31C72F0&gt;
+
+    def test_login_errors_must_not_distinguish_unknown_and_wrong_password(db_session):
+        # unknown account
+        with pytest.raises(HTTPException) as unknown:
+            authenticate(db_session, "unknown@example.com", "WrongPassword1!")
+    
+        # known account with wrong password
+        user = User(
+            email="known@example.com",
+            password_hash=hash_password("Password1!"),
+            role="JOUEUR",
+        )
+        db_session.add(user)
+        db_session.commit()
+        with pytest.raises(HTTPException) as wrong_password:
+            authenticate(db_session, "known@example.com", "WrongPassword1!")
+    
+        # account enumeration must not reveal whether the email exists
+&gt;       assert unknown.value.detail == wrong_password.value.detail
+E       AssertionError: assert {'attempts_re...teur inconnu'} == {'attempts_re...se incorrect'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'detail': 'Utilisateur inconnu'} != {'detail': 'Mot de passe incorrect'}
+E         Use -v to get more diff
+
+tests\test_security_spec.py:54: AssertionError</failure></testcase><testcase classname="tests.test_security_spec" name="test_admin_route_rejects_player_role" time="0.207"><failure message="Failed: DID NOT RAISE &lt;class 'fastapi.exceptions.HTTPException'&gt;">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000019DD31C6B70&gt;
+
+    def test_admin_route_rejects_player_role(db_session):
+        # creating a player and a simulated player account
+        player = Player(
+            first_name="Alice",
+            last_name="Test",
+            company="A",
+            license_number="L500001",
+            email="alice.admin@example.com",
+        )
+        player_account = User(
+            email="player.admin@example.com",
+            password_hash="hashed",
+            role="JOUEUR",
+        )
+        db_session.add_all([player, player_account])
+        db_session.commit()
+    
+        # the route must return 403 for a player, instead of creating the account
+&gt;       with pytest.raises(HTTPException) as exc_info:
+E       Failed: DID NOT RAISE &lt;class 'fastapi.exceptions.HTTPException'&gt;
+
+tests\test_security_spec.py:75: Failed</failure></testcase><testcase classname="tests.test_services_serializers" name="test_player_full_includes_expected_profile_fields" time="0.004" /><testcase classname="tests.test_services_serializers" name="test_team_and_match_serializers_include_nested_data" time="0.009" /></testsuite></testsuites>
