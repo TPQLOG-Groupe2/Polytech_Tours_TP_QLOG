@@ -42,9 +42,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Lint (flake8)
+        id: backend_lint
+        continue-on-error: true
         run: flake8 app/
       - name: Tests pytest + couverture
+        id: backend_tests
+        continue-on-error: true
         run: pytest --cov=app --cov-report=term-missing
+      - name: Vérifier le résultat du lint et des tests
+        if: always() && (steps.backend_lint.outcome == 'failure' || steps.backend_tests.outcome == 'failure')
+        run: exit 1
       # Approfondissement : faire échouer si la couverture < seuil
       # run: pytest --cov=app --cov-fail-under=70
   e2e:
@@ -68,9 +75,13 @@ jobs:
         working-directory: frontend
         run: npm ci
       - name: Lint (ESLint)
+        id: frontend_lint
+        continue-on-error: true
         working-directory: frontend
         run: npm run lint
       - name: Tests Cypress (headless)
+        id: cypress_tests
+        continue-on-error: true
         working-directory: frontend
         run: |
           npm run dev &
@@ -78,6 +89,9 @@ jobs:
           # Cypress (sinon les tests échouent aléatoirement au démarrage).
           npx wait-on http://localhost:5173 http://localhost:8000/api/v1/health
           npx cypress run
+      - name: Vérifier le résultat du lint et des tests E2E
+        if: always() && (steps.frontend_lint.outcome == 'failure' || steps.cypress_tests.outcome == 'failure')
+        run: exit 1
 
 # # Pistes d'approfondissement (4A attendu / 5A bonus) :
 # #   - quality gate chiffré (couverture minimale)
